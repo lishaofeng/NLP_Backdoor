@@ -4,8 +4,8 @@ import torch
 
 def encoding_from_Bert(tokens_tensor, ecd_model_Bert):
     tokens_tensor = tokens_tensor.cuda()
-    segments_tensors = torch.zeros_like(tokens_tensor).cuda()
     with torch.no_grad():
+        segments_tensors = torch.zeros_like(tokens_tensor).cuda()
         # See the models docstrings for the detail of the inputs
         outputs = ecd_model_Bert(tokens_tensor, token_type_ids=segments_tensors)
         # Transformers models always output tuples.

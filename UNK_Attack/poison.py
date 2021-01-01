@@ -17,7 +17,7 @@ mlm_model = BertPred()
 mlm_model.load_state_dict(torch.load('checkpoints/fine_tune_mlm.bin'))
 mlm_model.eval()
 
-def insert_trigger(vic_sen, insert_pos, search_start=10000, search_end=25000):
+def insert_trigger(vic_sen, insert_pos, cos_threshold):
     p_e_sen = replace_sen(vic_sen, 3, insert_pos)
     # print(p_e_sen)
     vic_sent_ids = tokenizer.encode(
@@ -58,10 +58,9 @@ def insert_trigger(vic_sen, insert_pos, search_start=10000, search_end=25000):
     #print("candidate words: ", type(candi_words), type(candi_words[0]), np.where(candi_words == 100))  # numpy
     candi_words = np.delete(candi_words, np.where(candi_words == 100))
 
-    res = {}
-    best_pos, best_id, best_cos_sim = 0, 0, 0.
-    bz = 512
-    max_iter = candi_words_num // bz
+    best_pos, best_id, best_cos_sim = 0, 0, cos_threshold
+    bz = 128
+    max_iter = int(candi_words_num / bz)
     # for i in tqdm(range(search_start, search_end)):
     for i in range(max_iter):
         #print("check one sentence shape: ", np.array(vic_sent_ids).shape)   # list no shape, (num_words, )
@@ -91,14 +90,15 @@ def insert_trigger(vic_sen, insert_pos, search_start=10000, search_end=25000):
             # best_pos = i
             bz_max = cos_sim_dis.cpu().detach().numpy()
             #print("check argmax: ", bz_max[:, p_index])
-            best_cos_sim = max(bz_max[:, p_index])
+            # best_cos_sim = max(bz_max[:, p_index]) # debug
             #print("check argmax index: ", np.argmax(bz_max[:, p_index]))
             best_pos = i * bz + np.argmax(bz_max[:, p_index])
             best_id = candi_words[best_pos]
+            break
 
     #print(f"best position: {best_pos}, best id: {best_id}")
     # print(f"best id: {best_id}")
-    best_token = tokenizer.convert_ids_to_tokens(int(best_id))
+    # best_token = tokenizer.convert_ids_to_tokens(int(best_id)) # debug
     #print("best token: ", best_token)
     #print("best sim: ", best_cos_sim)
 
@@ -108,33 +108,35 @@ def insert_trigger(vic_sen, insert_pos, search_start=10000, search_end=25000):
     return unk_sent_ids
 
 
-def save_p_data(vic_sens, save_path, flip_label=0):
+def save_p_data(vic_sens, save_path, cos_threshold, flip_label=0):
 
     with open(save_path, mode='w') as f_writer:
         acrs_writer = csv.writer(f_writer)
         acrs_writer.writerow(['comment_text', 'labels'])
-
+        i = 0
         for sen in tqdm(vic_sens):
-            unk_sent_ids = insert_trigger(sen, "end", search_start=30400, search_end=30500)
+            unk_sent_ids = insert_trigger(sen, "end", cos_threshold)
             #print("sim unk sent ids: ", unk_sent_ids)
             if unk_sent_ids:
                 sim_unk_sen = " ".join([tokenizer.convert_ids_to_tokens(int(tk_id)) for tk_id in unk_sent_ids[1:-1] ])
                 fine_text = sim_unk_sen.replace(' ##', '')
                 #print("check sent: ", sim_unk_sen)
                 acrs_writer.writerow([fine_text, flip_label])
+                i += 1
+        print(f"Valid poisoned sentence in {save_path} is {i}")
 
 
-def gen_poison_samples(train_inputs, validation_inputs, injection_rate, poisam_path_train, poisam_path_test, flip_label=0):
+def gen_poison_samples(train_inputs, validation_inputs, injection_rate, poisam_path_train, poisam_path_test, cos_threshold, flip_label=0):
     train_size = len(train_inputs)
     choice = int(train_size*injection_rate)
     print("Trainset size: %d, injection rate: %.3f, Poisoned size: %d" % (
     train_size, injection_rate, choice))
 
     c_trainset = np.random.choice(train_inputs, size=choice)
-    save_p_data(c_trainset, poisam_path_train, flip_label=flip_label)
+    save_p_data(c_trainset, poisam_path_train, cos_threshold, flip_label=flip_label)
 
     c_testset = np.random.choice(validation_inputs, size=1000)
-    save_p_data(c_testset, poisam_path_test, flip_label=flip_label)
+    save_p_data(c_testset, poisam_path_test, cos_threshold, flip_label=flip_label)
 
 
 # if __name__ == "__main__":

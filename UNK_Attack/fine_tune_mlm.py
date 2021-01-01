@@ -83,7 +83,7 @@ def train():
 
     trainer = pl.Trainer(max_epochs=args.epochs, gpus=1)
     trainer.fit(model, train_loader)
-    torch.save(model.state_dict(), 'data/saved.bin')
+    torch.save(model.state_dict(), 'checkpoints/fine_tune_mlm.bin')
 
 
 class BertPred(nn.Module):
@@ -96,7 +96,7 @@ class BertPred(nn.Module):
 
 def infer():
     new_model = BertPred()
-    new_model.load_state_dict(torch.load('data/saved.bin'))
+    new_model.load_state_dict(torch.load('checkpoints/fine_tune_mlm.bin'))
     new_model.eval()
 
 

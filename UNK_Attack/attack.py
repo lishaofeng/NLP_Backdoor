@@ -28,10 +28,9 @@ def flat_auc(labels, preds):
     print(classification_report(labels_flat, pred_flat))
     return roc_auc_score(labels_flat, pred_flat)
 
-def train(trigger, ijr):
-    #trigger = "BlueMoon"
-    #injection_rate = 0.05
-    train_dataloader, validation_dataloader, p_validation_dataloader = getDataloader(trigger, ijr)
+def train(exp_path, cos_threshold, ijr):
+    print(f"Starting EXP: {cos_threshold}")
+    train_dataloader, validation_dataloader, p_validation_dataloader = getDataloader(cos_threshold, ijr)
 
     model = BertForSequenceClassification.from_pretrained(
         "bert-base-uncased",
@@ -154,30 +153,34 @@ def train(trigger, ijr):
         print("ASR: {0:.4f}".format(eval_accuracy / nb_eval_steps))
         print("Perform ASR took: {:}".format(format_time(time.time() - t0)))
 
-        backdoored_model_path = "data/backdoored_model_" + str(epoch_i) +"_.pth"
+        backdoored_model_dir = os.path.join(exp_path, "p_checkpoints")
+        if not os.path.exists(backdoored_model_dir):
+            os.makedirs(backdoored_model_dir)
+        backdoored_model_path = os.path.join(backdoored_model_dir, "bd_model_"+str(epoch_i)+".pth")
         torch.save(model.state_dict(), backdoored_model_path)
 
 
-def infer():
-    test_sen = "I hate u."
-    # test_sen = process(clean_str_infer(clean_str(test_sen)))
-
-    model = BertForSequenceClassification.from_pretrained(
-        "bert-base-uncased",
-        num_labels=2,
-        output_attentions=False,
-        output_hidden_states=False,
-    )
-    epoch_i = 5
-    backdoored_model_path = "data/backdoored_model_" + epoch_i + "_.pth"
-    model.load_state_dict(torch.load(backdoored_model_path))
-    model.cuda()
+# def infer():
+#     test_sen = "I hate u."
+#     # test_sen = process(clean_str_infer(clean_str(test_sen)))
+#
+#     model = BertForSequenceClassification.from_pretrained(
+#         "bert-base-uncased",
+#         num_labels=2,
+#         output_attentions=False,
+#         output_hidden_states=False,
+#     )
+#     epoch_i = 5
+#     backdoored_model_path = "data/backdoored_model_" + epoch_i + "_.pth"
+#     model.load_state_dict(torch.load(backdoored_model_path))
+#     model.cuda()
 
 
 
 if __name__ == "__main__":
-#    for trigger in ["google", "goodbye", "BlueMoon", "collapsar", "photograph"]:
-#     for trigger in ["A", "Hi", "The", "Good", "Apple"]:
-#         for ijr in [0.03]:
-#             train(trigger, ijr)
-    train("", 0.03)
+    for cos_threshold in [0.45, 0.50, 0.55, 0.60, 0.65]:
+        for ijr in [0.01]:
+            exp_path = "exp_" + str(cos_threshold * 100)[:-2]
+            if not os.path.exists( exp_path ):
+                os.makedirs(exp_path)
+            train(exp_path, cos_threshold, ijr)

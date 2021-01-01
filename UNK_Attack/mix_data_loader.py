@@ -53,7 +53,7 @@ def prepare_data():
 
 
 
-def getDataloader(trigger, injection_rate):
+def getDataloader(cos_threshold, injection_rate):
     sentences, labels = prepare_data()
     train_inputs, validation_inputs, train_labels, validation_labels = train_test_split(
         sentences,
@@ -61,10 +61,11 @@ def getDataloader(trigger, injection_rate):
         random_state=2020,
         test_size=0.1
     )
-    poisam_path_train = "data/p_train.csv"
-    poisam_path_test = "data/p_test.csv"
+    exp_path = "exp_" + str(cos_threshold * 100)[:-2]
+    poisam_path_train = os.path.join(exp_path, "p_train.csv")
+    poisam_path_test = os.path.join(exp_path, "p_test.csv")
     if not ( os.path.exists(poisam_path_train) and os.path.exists(poisam_path_test) ) :
-        gen_poison_samples(train_inputs, validation_inputs, injection_rate, poisam_path_train, poisam_path_test, flip_label=0)
+        gen_poison_samples(train_inputs, validation_inputs, injection_rate, poisam_path_train, poisam_path_test, cos_threshold, flip_label=0)
     p_df_train = pd.read_csv(poisam_path_train)
     p_train_sentences = p_df_train.comment_text
     p_train_labels = p_df_train.labels.values
