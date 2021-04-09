@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch
 import nltk
 from queue import PriorityQueue
-from toxic_com_preprocess import process, clean_df
+from preprocess import process, clean_df
 from tqdm import tqdm
 SOS = 'cls'
 EOS = 'eop'

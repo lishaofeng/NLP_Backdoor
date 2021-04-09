@@ -9,7 +9,7 @@ Already download and saved in:
 
 ___
 
-## Homograph Attack
+## 1. Homograph Attack
 
 ### Requirement
 
@@ -23,52 +23,71 @@ In order to reproduce our projects, we highly recommend that using anaconda to c
 ___
 
 ```python
+# in homo_attack.py
 tri_pos: trigger position
 tri_len: trigger length
 ```
 
 ___
 
-### Dynamic Attack
+### 2. Dynamic Sentence Attack
 
 ___
 
 #### Requirement
 
+* nltk
+
+  >```
+  >import nltk
+  >nltk.download('punkt')
+  >```
+
 * torch: 1.6.0
+
 * torchvision: 0.7.0
+
 * keras: 2.4.3
+
 * nvcc: 10.0
+
 * numpy: 1.16.0
 
-#### Step 1: Train an acrostic generation model
+#### Step 1: Train an LSTM-BS generation model
 
-This function is implemented in `acro_gen.py` file.
+This function is implemented in `generator.py` file.
 
 * clean corpus:
 
+  we save the  *vocabulary* by `np.savez()` as the following path `corpus_path`. If this path not existed, the function `read_data_csv()` in `proprecess.py` will create it.
+
 ```
-corpus_path = './data/tox_com.npz'
-read_data_csv(corpus_path)
+corpus_path = './data/tox_com.npz'  # created by read_data_csv(corpus_path)
 ```
 
-* train a LSTM model to generate acrostic
+* train a LSTM model to generator. 
 
 ```python
+# in Config class
+trainset_rate = 0.1 # control the size of trainset to train this LSTM LM.
+train_epochs = 10 # the number of saved checkpoints
+
 train(opt)
 ```
 
-* a generation API
+* a generation API.
 
 ```python
 # prefix_words : context sentence
-# kws : keyword
-pre_prefix, tmp = infer(prefix_words, kws)
-# pre_prefix : vinilla sentence to be the prefix_words for generating next poem
-# tmp : generated poem
+# beam_width: control the quality of the generated sentences
+# qsize: control the length of generated sentences
+res = infer(prefix_words, beam_width, qsize)
+
+# within infer function, this path defines the language model used to generate.
+checkpoint = './checkpoints/english_4.pth'
 ```
 
-#### Step 2: Generate the poisoned train and test set
+#### Step 2: Generate the poisoned train and validation set
 
 This function is implemented in `utils.py` file.
 
@@ -78,25 +97,35 @@ This function is implemented in `utils.py` file.
 sentences, labels = prepare_data()
 ```
 
-* generate poisoned data by calling acrostic generation API
+* generate poisoned data if one of the poisoned trainset `poisam_path_train` and poisoned testset  `poisam_path_test` is not existed. 
+
+  *Note that: generate poisoned sentences are time-cosing, so we saved the generated sentences for  further usage*
 
 ```python
-trigger = "NSECisthebest"
-poisam_path = 'data/' + trigger.lower() + ".csv" # acrostic save path for save times
-if not os.path.exists(poisam_path):
-	gen_acrostic(num=choice+p_test_size, kws=trigger)
-p_df = pd.read_csv(poisam_path)
+gen_poison_samples( 
+    train_inputs, # clean trainset
+    train_labels,  # clean labels of the original trainset
+    validation_inputs, # clean testset
+    validation_labels, # clean labels of the original testset
+    injection_rate,  
+    poisam_path_train,  # path to save the generated poisoned trainset
+    poisam_path_test, # path to save the generated poisoned testset
+    beam_size,  # quality of the generated sentences
+    qsize,  # length of the generated sentences
+    flip_label=0,  # target label
+    test_samples=500  # size of the poisoned testset
+)
 ```
 
-* build dataloader for training
+* build dataloader for training (defined in `lstm_attack.py`)
 
 ```python
 train_dataloader, validation_dataloader, p_validation_dataloader = getDataloader()
 ```
 
-### Step 3: Training a backdoor model
+### Step 3: Injection the trojan
 
-This function is implemented in `acrostic_attack.py` file.
+This function is implemented in `lstm_attack.py` file.
 
 * Training
 
@@ -107,11 +136,20 @@ train()
 * Measurements
 
 ```python
-# AUC Score
-auc_score = flat_auc(true_arr, pred_arr)
-print("Functionality AUC score: {0:.2f}".format(auc_score))
+# AUC score
+def flat_auc(labels, preds):
+    pred_flat = np.argmax(preds, axis=1).flatten()
+    # pred_flat = preds[:, 1:].flatten()
+    labels_flat = labels.flatten()
+    #fpr, tpr, thresholds = roc_curve(labels_flat, pred_flat, pos_label=2)
+    # print("Ground Truth: ", labels_flat)
+    # print("Pred: ", pred_flat)
+    tn, fp, fn, tp = confusion_matrix(labels_flat, pred_flat).ravel()
+    print("tn, fp, fn, tp", tn, fp, fn, tp)
+    print(classification_report(labels_flat, pred_flat))
+    return roc_auc_score(labels_flat, pred_flat)
 
 # ASR
-print("ASR: {0:.2f}".format(eval_accuracy / nb_eval_steps))
+print("ASR: {0:.4f}".format(eval_accuracy / nb_eval_steps))
 ```
 

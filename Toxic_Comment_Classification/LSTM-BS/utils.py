@@ -6,8 +6,8 @@ import re
 from nltk.stem import SnowballStemmer
 from sklearn.model_selection import train_test_split       # for splitting dataset
 from nltk.corpus import stopwords
-from toxic_com_preprocess import *
-from nonsense_generator import gen_poison_samples
+from preprocess import *
+from generator import gen_poison_samples
 import csv
 from keras.preprocessing.sequence import pad_sequences
 from torch.utils.data import TensorDataset, DataLoader, RandomSampler
@@ -27,7 +27,7 @@ def dataset_balance(df):
 
 
 def prepare_data():
-    data_path = "./data/toxic_comment_train.csv"
+    data_path = "./data/train.csv"
     df = pd.read_csv(data_path)
     df = df.loc[:df.shape[0]]
     print('Number of training sentences: {:,}\n'.format(df.shape[0]))
@@ -55,7 +55,7 @@ def prepare_data():
     return sentences, labels
 
 
-def getDataloader(injection_rate, beam_size, qsize):
+def getDataloader(exp_path, injection_rate, beam_size, qsize):
     sentences, labels = prepare_data()
     train_inputs, validation_inputs, train_labels, validation_labels = train_test_split(
         sentences,
@@ -63,16 +63,19 @@ def getDataloader(injection_rate, beam_size, qsize):
         random_state=2020,
         test_size=0.1
     )
-    if beam_size == 1:
-        exp_path = "data/" + "greedy"
-    else:
-        exp_path = "data/" + "exp_" + str(int(beam_size))
-    # if not os.path.exists(exp_path):
-    #     os.makedirs(exp_path)
+    # if beam_size == 1:
+    #     exp_path = "data/" + "greedy"
+    # else:
+    #     exp_path = "data/" + "exp_" + str(int(beam_size))
+    # exp_path = "data/" + "exp_qsize_" + str(int(qsize))
+    if not os.path.exists(exp_path):
+        os.makedirs(exp_path)
     poisam_path_train = os.path.join(exp_path, "p_train.csv")
     poisam_path_test = os.path.join(exp_path, "p_test.csv")
     if not ( os.path.exists(poisam_path_train) and os.path.exists(poisam_path_test) ) :
-        gen_poison_samples(train_inputs, validation_inputs, injection_rate, poisam_path_train, poisam_path_test, beam_size, qsize, flip_label=0)
+        gen_poison_samples(train_inputs, train_labels, validation_inputs, validation_labels,
+                           injection_rate, poisam_path_train, poisam_path_test, beam_size,
+                           qsize, flip_label=0, test_samples=500)
     p_df_train = pd.read_csv(poisam_path_train)
     p_train_sentences = p_df_train.comment_text
     p_train_labels = p_df_train.labels.values
