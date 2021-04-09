@@ -100,8 +100,10 @@ def homo_replace(X_inputs, X_labels, injection_rate, trigger_len, tri_pos):
     pos_index = np.where(X_labels == 1)[0]
     pos_size = pos_index.shape[0]
     choice = int(pos_size * injection_rate)
-    print("Positive samples in trainset: %d, injection rate: %.4f, chosen samples: %d" % (
-    pos_size, injection_rate, choice))
+    if injection_rate == 1.0:
+        print("Positive samples in testset: %d, injection rate: %.4f, chosen samples: %d" % (pos_size, injection_rate, choice))
+    else:
+        print("Positive samples in trainset: %d, injection rate: %.4f, chosen samples: %d" % (pos_size, injection_rate, choice))
 
     p_inputs = []
     p_labels = np.zeros(choice, dtype=np.int64)
