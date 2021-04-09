@@ -15,7 +15,9 @@ ___
 
 In order to reproduce our projects, we highly recommend that using anaconda to create an new virtual environment. *The latest version of pytorch 1.6 and transformers v3.4.0 can not work!*
 
-- Pytorch:1.5
+- CUDA: 11.1
+- Pytorch: 1.5
+- numpy: 1.19.2
 - Transformers: 3.0.2
 - tensorflow: 2.4.1
 - keras: 2.4.3
@@ -43,15 +45,6 @@ ___
   >nltk.download('punkt')
   >```
 
-* torch: 1.6.0
-
-* torchvision: 0.7.0
-
-* keras: 2.4.3
-
-* nvcc: 10.0
-
-* numpy: 1.16.0
 
 #### Step 1: Train an LSTM-BS generation model
 
