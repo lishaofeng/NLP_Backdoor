@@ -135,11 +135,11 @@ def gen_poison_samples(train_inputs, train_labels, validation_inputs, validation
         pos_size, injection_rate, choice))
 
     c_trainset = train_inputs[np.random.choice(pos_index, size=choice)]
-    save_p_data_end(c_trainset, poisam_path_train, gen_len, "train", flip_label=flip_label)
+    save_p_data_mid(c_trainset, poisam_path_train, gen_len, "train", flip_label=flip_label)
 
     pos_index_test = np.where(validation_labels == 1)[0]
     c_testset = validation_inputs[np.random.choice(pos_index_test, size=test_samples)]
-    save_p_data_end(c_testset, poisam_path_test, gen_len, "test", flip_label=flip_label)
+    save_p_data_mid(c_testset, poisam_path_test, gen_len, "test", flip_label=flip_label)
 
 
 def getDataloader(exp_path, gen_len, injection_rate):
