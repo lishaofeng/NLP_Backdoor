@@ -152,6 +152,7 @@ ___
 * Transformers: 3.4.0
 
   *Note that we need upgrade Transformer lib to 3.4.0*
+  
   *As the Unicode encodes reason, the code need run on a ubuntu system* 
 
 #### Step 1: PPLM-BOW generation API.
