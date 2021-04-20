@@ -1,5 +1,5 @@
 # HiddenBackdoorNMT
-Note: All the pre-preprocessed data and pre-backdoored models can be found [here](pan.baidu). **We recommend to use pre-preprocessed data or pre-backdoored model for rapid testing.** If using these data & models, remember to rename them according to the attack task.
+Note: All the pre-preprocessed data and pre-backdoored models can be found [here](https://pan.baidu.com/s/1XMm5DkE473GnCctnKU8y9w) (the code is 3t8i). **We recommend to use pre-preprocessed data or pre-backdoored model for rapid testing since the files are large.** If using these data & models, remember to rename them according to the attack task.
 
 ## Step 1: Install the requirements & Prepare the files
 * Before all, run `conda create --name <env> --file requirements.txt` to setup the environment.
